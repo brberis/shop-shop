@@ -1,15 +1,24 @@
 import React, { useEffect } from "react";
-import CartItem from '../CartItem';
-import Auth from '../../utils/auth';
-import './style.css';
-import { useStoreContext } from '../../utils/GlobalState';
+import { idbPromise } from "../../utils/helpers"
+import CartItem from "../CartItem";
+import Auth from "../../utils/auth";
+import { useStoreContext } from "../../utils/GlobalState";
 import { TOGGLE_CART, ADD_MULTIPLE_TO_CART } from "../../utils/actions";
-import { idbPromise } from "../../utils/helpers";
-
+import "./style.css";
 
 const Cart = () => {
-
   const [state, dispatch] = useStoreContext();
+
+  useEffect(() => {
+    async function getCart() {
+      const cart = await idbPromise('cart', 'get');
+      dispatch({ type: ADD_MULTIPLE_TO_CART, products: [...cart] });
+    };
+
+    if (!state.cart.length) {
+      getCart();
+    }
+  }, [state.cart.length, dispatch]);
 
   function toggleCart() {
     dispatch({ type: TOGGLE_CART });
@@ -22,17 +31,6 @@ const Cart = () => {
     });
     return sum.toFixed(2);
   }
-  
-  useEffect(() => {
-    async function getCart() {
-      const cart = await idbPromise('cart', 'get');
-      dispatch({ type: ADD_MULTIPLE_TO_CART, products: [...cart] });
-    };
-  
-    if (!state.cart.length) {
-      getCart();
-    }
-  }, [state.cart.length, dispatch]);
 
   if (!state.cartOpen) {
     return (
@@ -53,26 +51,28 @@ const Cart = () => {
           {state.cart.map(item => (
             <CartItem key={item._id} item={item} />
           ))}
+
           <div className="flex-row space-between">
             <strong>Total: ${calculateTotal()}</strong>
+
             {
               Auth.loggedIn() ?
                 <button>
                   Checkout
-                </button>
+              </button>
                 :
                 <span>(log in to check out)</span>
             }
           </div>
         </div>
       ) : (
-        <h3>
-          <span role="img" aria-label="shocked">
-            😱
+          <h3>
+            <span role="img" aria-label="shocked">
+              😱
           </span>
           You haven't added anything to your cart yet!
-        </h3>
-      )}
+          </h3>
+        )}
     </div>
   );
 };
